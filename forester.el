@@ -162,6 +162,9 @@
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
 
+(unless (member '(forester "https://github.com/olynch/tree-sitter-forester") treesit-language-source-alist)
+  (push '(forester "https://github.com/olynch/tree-sitter-forester") treesit-language-source-alist))
+
 (provide 'forester-mode)
 ;;; forester.el ends here
 
