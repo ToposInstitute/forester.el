@@ -165,7 +165,7 @@
 (unless (member '(forester "https://github.com/olynch/tree-sitter-forester") treesit-language-source-alist)
   (push '(forester "https://github.com/olynch/tree-sitter-forester") treesit-language-source-alist))
 
-(provide 'forester-mode)
+(provide 'forester)
 ;;; forester.el ends here
 
 
