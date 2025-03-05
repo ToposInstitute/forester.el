@@ -20,6 +20,71 @@
 
 ;;; Code:
 
+(defgroup forester-fonts
+  nil ; No initial customization
+  "Customization options for the Forester markup language"
+  :group 'faces
+)
+
+(defface forester-title
+  '((t :inherit 'bold))
+  "Forester title font. Bold for now."
+  :group 'forester-fonts
+  )
+
+(defface forester-inline-math
+  '((t :foreground "#DFAF8F"))
+  "Forester inline math, same color as AuCTeX's color for LaTeX inline."
+  :group 'forester-fonts
+  )
+
+(defvar forester-ts-font-lock-rules
+  '(
+    :language forester
+    :feature title
+    ;; :override t
+    ;; There's an outer wrapper here which is semantically meaningless,
+    ;; it's just a quotation operator.
+    (((title (_)@forester-title)))
+
+    :language forester
+    :feature inline-math
+    ;; :override t
+    ( (inline_math "#" "{" (_)@forester-inline-math "}") )
+    )
+  )
+
+(defvar forester-ts-indent-rules
+  '((forester
+     ((parent-is "source_file") parent 0)
+     ((node-is "command") grand-parent 2)
+     ((node-is "text") (nth-sibling 1) 1)
+     ((node-is "inline_math") (nth-sibling 1) 1)
+     ((node-is "}") (nth-sibling 0) -1)
+     (no-node parent 1)
+     (catch-all parent 0)
+     )))
+
+(defun forester-ts-setup ()
+  "Setup treesit for forester-ts-mode."
+  ;; Our tree-sitter setup goes here.
+
+  ;; This handles font locking
+  (setq-local treesit-font-lock-settings
+               (apply #'treesit-font-lock-rules
+                      forester-ts-font-lock-rules))
+
+  (setq-local treesit-font-lock-feature-list
+	      '((inline-math title) () ()))
+
+  ;; This handles indentation
+  (setq-local treesit-simple-indent-rules forester-ts-indent-rules)
+
+   ;; ... everything else we talk about go here also ...
+
+  ;; End with this
+  (treesit-major-mode-setup))
+
 (defun forester--root ()
   (project-root (project-current)))
 
@@ -89,7 +154,10 @@
 
 (define-derived-mode forester-mode text-mode "Forester" "A major mode for editing forester files (trees)"
   (visual-line-mode)
-  )
+  (setq-local font-lock-defaults nil)
+  (when (treesit-ready-p 'forester)
+    (treesit-parser-create 'forester)
+    (forester-ts-setup)))
 
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
