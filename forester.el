@@ -33,8 +33,14 @@
   )
 
 (defface forester-inline-math
-  '((t :foreground "#DFAF8F"))
-  "Forester inline math, same color as AuCTeX's color for LaTeX inline."
+  '((t :foreground font-lock-string-face))
+  "Forester inline math"
+  :group 'forester-fonts
+  )
+
+(defface forester-builtin
+  '((t :inherit font-lock-constant-face))
+  "Forester builtin functions"
   :group 'forester-fonts
   )
 
@@ -50,7 +56,11 @@
     :language forester
     :feature inline-math
     ;; :override t
-    ( (inline_math "#" "{" (_)@forester-inline-math "}") )
+    ((inline_math "#" "{" (_)@forester-inline-math "}"))
+
+    :language forester
+    :feature keyword
+    ((p "p" @forester-builtin))
     )
   )
 
@@ -155,9 +165,12 @@
 (define-derived-mode forester-mode text-mode "Forester" "A major mode for editing forester files (trees)"
   (visual-line-mode)
   (setq-local font-lock-defaults nil)
-  (when (treesit-ready-p 'forester)
-    (treesit-parser-create 'forester)
-    (forester-ts-setup)))
+  (setq-local comment-start "% ")
+  (setq-local comment-end "")
+  (unless (treesit-ready-p 'forester)
+    (error "Tree-sitter for Forester is not available"))
+  (treesit-parser-create 'forester)
+  (forester-ts-setup))
 
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
