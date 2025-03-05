@@ -33,7 +33,7 @@
   )
 
 (defface forester-inline-math
-  '((t :foreground font-lock-string-face))
+  '((t :inherit font-lock-string-face))
   "Forester inline math"
   :group 'forester-fonts
   )
