@@ -85,7 +85,7 @@
                       forester-ts-font-lock-rules))
 
   (setq-local treesit-font-lock-feature-list
-	      '((inline-math title) () ()))
+	      '((inline-math title keyword) () ()))
 
   ;; This handles indentation
   (setq-local treesit-simple-indent-rules forester-ts-indent-rules)
