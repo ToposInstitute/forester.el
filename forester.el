@@ -162,7 +162,7 @@
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
 
-(provide 'forester)
+(provide 'forester-mode)
 ;;; forester.el ends here
 
 
