@@ -6,7 +6,7 @@
 ;; Maintainer: Topos Staff <jason@topos.institute>
 ;; Created: 2025
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "28.1") (rainbow-delimiters "2.0"))
 ;; URL: https://github.com/ToposInstitute/forester.el
 ;; Keywords: forester
 
@@ -32,6 +32,18 @@
   :group 'forester-fonts
   )
 
+(defface forester-em
+  '((t :inherit 'italic))
+  "Forester title font. Bold for now."
+  :group 'forester-fonts
+  )
+
+(defface forester-strong
+  '((t :inherit 'bold))
+  "Forester title font. Bold for now."
+  :group 'forester-fonts
+  )
+
 (defface forester-inline-math
   '((t :inherit font-lock-string-face))
   "Forester inline math"
@@ -39,8 +51,14 @@
   )
 
 (defface forester-builtin
-  '((t :inherit font-lock-constant-face))
+  '((t :inherit font-lock-builtin-face))
   "Forester builtin functions"
+  :group 'forester-fonts
+  )
+
+(defface forester-punctuation
+  '((t :inherit font-lock-builtin-face))
+  "Forester punctuation"
   :group 'forester-fonts
   )
 
@@ -59,8 +77,10 @@
     ((inline_math "#" "{" (_)@forester-inline-math "}"))
 
     :language forester
-    :feature keyword
-    ((p "p" @forester-builtin))
+    :feature rich-text
+    ((em "\\" "em" "{" (_)@forester-em "}")
+     (strong "\\" "strong" "{" (_)@forester-strong "}")
+     )
     )
   )
 
@@ -85,7 +105,7 @@
                       forester-ts-font-lock-rules))
 
   (setq-local treesit-font-lock-feature-list
-	      '((inline-math title keyword) () ()))
+	      '((inline-math title keyword builtin rich-text) () ()))
 
   ;; This handles indentation
   (setq-local treesit-simple-indent-rules forester-ts-indent-rules)
@@ -168,9 +188,11 @@
   (setq-local comment-start "% ")
   (setq-local comment-end "")
   (unless (treesit-ready-p 'forester)
-    (error "Tree-sitter for Forester is not available"))
+    (error "must install forester treesitter grammar"))
   (treesit-parser-create 'forester)
   (forester-ts-setup))
+
+(add-hook 'forester-mode-hook #'rainbow-delimiters-mode)
 
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
