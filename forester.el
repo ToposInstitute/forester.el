@@ -93,14 +93,12 @@
 
 (defvar forester-ts-indent-rules
   '((forester
-     ((parent-is "source_file") parent 0)
-     ((node-is "command") grand-parent 2)
-     ((node-is "text") (nth-sibling 1) 1)
-     ((node-is "inline_math") (nth-sibling 1) 1)
-     ((node-is "}") (nth-sibling 0) -1)
-     (no-node parent 1)
-     (catch-all parent 0)
-     )))
+     ((parent-is "source_file") parent-bol 0)
+     ((node-is "}") parent-bol 0)
+     ((parent-is "subtree") parent-bol 2)
+     ((parent-is "ul") parent-bol 2)
+     ((parent-is "ol") parent-bol 2)
+     (catch-all parent-bol 0))))
 
 (defun forester-ts-setup ()
   "Setup treesit for forester-ts-mode."
@@ -160,8 +158,16 @@
              ,(concat "--dest=" dest)
              ,(concat "--prefix=" namespace)
              ,@(if template (list (concat "--template=" template)) '()))))
-         (tree (replace-regexp-in-string "\n" "" output)))
-    (write-region (concat "\\author{" author "}\n") nil (concat (forester--root) tree) t)
+         (tree (replace-regexp-in-string "\n" "" output))
+         (treepath (concat (forester--root) tree))
+         (content (with-temp-buffer
+                    (insert-file-contents treepath)
+                    (goto-char (point-min))
+                    (insert "\\title{}\n")
+                    (insert (concat "\\author{" author "}\n"))
+                    (buffer-string)))
+         )
+    (write-region content nil treepath)
     tree))
 
 (defun forester--template-options ()
