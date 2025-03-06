@@ -62,6 +62,12 @@
   :group 'forester-fonts
   )
 
+(defface forester-address
+  '((t :inherit font-lock-string-face))
+  "Forester punctuation"
+  :group 'forester-fonts
+  )
+
 (defvar forester-ts-font-lock-rules
   '(
     :language forester
@@ -80,6 +86,7 @@
     :feature rich-text
     ((em "\\" "em" "{" (_)@forester-em "}")
      (strong "\\" "strong" "{" (_)@forester-strong "}")
+     (addr (_)@forester-address)
      )
     )
   )
@@ -171,6 +178,14 @@
   (let* ((treepath (forester--new template namespace dest author))
          (tree (file-name-base treepath)))
     (insert (concat "\\transclude{" tree "}"))))
+
+(defun forester-new-and-transclude-and-goto (&optional template namespace dest author)
+  (interactive)
+  (let* ((treepath (forester--new template namespace dest author))
+         (tree (file-name-base treepath)))
+    (insert (concat "\\transclude{" tree "}"))
+    (save-buffer)
+    (find-file (concat (forester--root) treepath))))
 
 (defun forester-goto ()
   "Jump to the tree address at point"
