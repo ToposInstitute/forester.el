@@ -44,11 +44,6 @@
   :group 'forester-fonts
   )
 
-(defface forester-inline-math
-  '((t :inherit font-lock-string-face))
-  "Forester inline math"
-  :group 'forester-fonts
-  )
 
 (defface forester-builtin
   '((t :inherit font-lock-builtin-face))
@@ -63,7 +58,7 @@
   )
 
 (defface forester-address
-  '((t :inherit font-lock-string-face))
+  '((t :inherit 'underline))
   "Forester punctuation"
   :group 'forester-fonts
   )
@@ -78,16 +73,17 @@
     (((title (_)@forester-title)))
 
     :language forester
-    :feature inline-math
-    ;; :override t
-    ((inline_math "#" "{" (_)@forester-inline-math "}"))
-
-    :language forester
     :feature rich-text
     ((em "\\" "em" "{" (_)@forester-em "}")
      (strong "\\" "strong" "{" (_)@forester-strong "}")
      (addr (_)@forester-address)
+     (ref "\\" "ref" "{" (_)@forester-address "}")
+     (author "\\" "author" "{" (_)@forester-address "}")
      )
+
+    :language forester
+    :feature comments
+    ((comment) @font-lock-comment-face)
     )
   )
 
@@ -158,7 +154,7 @@
              ,(concat "--dest=" dest)
              ,(concat "--prefix=" namespace)
              ,@(if template (list (concat "--template=" template)) '()))))
-         (tree (replace-regexp-in-string "\n" "" output))
+         (tree (car (last (split-string output "\n" t))))
          (treepath (concat (forester--root) tree))
          (content (with-temp-buffer
                     (insert-file-contents treepath)
@@ -188,7 +184,9 @@
 (defun forester-new-and-goto (&optional template namespace dest author)
   (interactive)
   (let* ((tree (forester-new template namespace dest author)))
-    (find-file (concat (forester--root) tree))))
+    (find-file (concat (forester--root) tree))
+    ; \title{<cursor>}
+    (goto-char 8)))
 
 (defun forester-new-and-transclude (&optional template namespace dest author)
   (interactive)
@@ -202,7 +200,8 @@
          (tree (file-name-base treepath)))
     (insert (concat "\\transclude{" tree "}"))
     (save-buffer)
-    (find-file (concat (forester--root) treepath))))
+    (find-file (concat (forester--root) treepath))
+    (goto-char 8)))
 
 (defun forester-goto ()
   "Jump to the tree address at point"
@@ -213,6 +212,16 @@
     (if files
         (find-file (car files))
       (error "Could not find tree"))))
+
+(defun forester-jump-in-namespace (&optional namespace)
+  (interactive)
+  (let* ((whoami (forester--whoami))
+         (root (forester--root))
+         (namespace (unless namespace (alist-get 'namespace whoami)))
+         (files (directory-files-recursively root (concat namespace "-[0-9A-Z]*\.tree")))
+         (files (map 'list (lambda (file) (substring file (length root))) files))
+         (file (completing-read "Select tree:" files)))
+    (find-file (concat root file))))
 
 (define-derived-mode forester-mode text-mode "Forester" "A major mode for editing forester files (trees)"
   (visual-line-mode)
