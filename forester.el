@@ -79,6 +79,7 @@
      (addr (_)@forester-address)
      (ref "\\" "ref" "{" (_)@forester-address "}")
      (author "\\" "author" "{" (_)@forester-address "}")
+     (markdown_link "[" (_) "]" "(" (_)@forester-address ")")
      )
 
     :language forester
@@ -106,7 +107,7 @@
                       forester-ts-font-lock-rules))
 
   (setq-local treesit-font-lock-feature-list
-	      '((inline-math title keyword builtin rich-text) () ()))
+	      '((inline-math title keyword builtin rich-text comments) () ()))
 
   ;; This handles indentation
   (setq-local treesit-simple-indent-rules forester-ts-indent-rules)
@@ -276,7 +277,7 @@ With a prefix argument, instead terminate the preview process.
   (treesit-parser-create 'forester)
   (forester-ts-setup))
 
-(add-hook 'forester-mode-hook #'rainbow-delimiters-mode)
+(add-hook 'forester-mode-hook 'rainbow-delimiters-mode)
 
 (unless (member '("\\.tree\\'" . forester-mode) auto-mode-alist)
   (push (cons "\\.tree\\'" 'forester-mode) auto-mode-alist))
