@@ -119,23 +119,25 @@
 (defun forester--root ()
   (project-root (project-current)))
 
-(defun forester--get-binary ()
-  (let* ((local-forester (concat (forester--root) "forester")))
+(defun forester--get-binary (binary)
+  (let* ((local-forester (concat (forester--root) binary)))
     (if (file-exists-p local-forester)
         local-forester
-      (executable-find "forester"))))
+      (executable-find binary))))
 
 (defun forester--whoami ()
   (let ((whoami (concat (forester--root) ".whoami")))
     (if (file-exists-p whoami)
         (json-read-file whoami))))
 
+
+;;; This is unused
 (defun forester--start (&rest args)
-  (let ((path (forester--get-binary)))
-    (apply #'start-process `("forester" "*forester-output*" ,@args))))
+  (let ((path (forester--get-binary "forester")))
+    (apply #'start-process `(,path "*forester-output*" ,@args))))
 
 (defun forester--call (&rest args)
-  (let* ((path (forester--get-binary))
+  (let* ((path (forester--get-binary "forester"))
          (default-directory (forester--root)))
     (with-temp-buffer
       (apply #'call-process `(,path nil t nil ,@args))
@@ -165,6 +167,47 @@
          )
     (write-region content nil treepath)
     tree))
+
+
+(defvar forester--preview-proc nil
+  "Whether './forester' is currently running.")
+
+(defun forester--sentinel (process event)
+  "Sentinel for forester-managed processes."
+  (when (memq (process-status process) '(exit signal))
+    (setq forester--preview-proc nil)
+    (message "%s terminated: %s" process event)))
+
+(defun forester-preview (&optional prefix)
+  "Run or interact with the preview shell script.
+   
+If the preview process is already running, send an Enter key to trigger
+recompilation.  Otherwise, start the preview process.
+
+With a prefix argument, instead terminate the preview process.
+"
+  (interactive)
+  (if (and forester--preview-proc (process-live-p forester--preview-proc))
+      (progn
+        (message "Sending Enter to the preview process...")
+        (process-send-string forester--preview-proc "\n"))
+    (progn
+      (message "Starting the preview process...")
+      (setq forester--preview-proc
+            (start-process "forester-preview" "*preview*" (forester--get-binary "preview")))
+      (set-process-sentinel forester--preview-proc #'forester--sentinel)
+      (set-process-query-on-exit-flag forester--preview-proc nil)
+      (display-buffer "*preview*"))))
+
+(defun forester-end-preview ()
+  "Kill the preview process, if currently running."
+  (interactive)
+  (if (and forester--preview-proc (process-live-p forester--preview-proc))
+      (progn
+        (message "Killing the preview process...")
+        (delete-process forester--preview-proc))
+    (progn
+      (message "There is no preview process to terminate."))))
 
 (defun forester--template-options ()
   (let* ((tdir (concat (forester--root) "/templates")))
