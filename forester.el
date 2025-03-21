@@ -169,6 +169,41 @@
     (write-region content nil treepath)
     tree))
 
+(defun forester--create-tree-link (tree-name label)
+  (insert (format "[%s](%s)" label tree-name))
+  )
+
+(defun forester--create-tree-ref (tree-name)
+  (insert (format "\\ref{%s}" tree-name))
+  )
+
+(defun forester-link ()
+  "Link an existing tree at the current point with given label."
+  (interactive)
+  (let* (
+         (file (read-file-name "Select tree: " (forester--root) nil t nil
+                               (lambda (f) (or (file-directory-p f)
+                                               (string-match-p "\\.tree\\'" (downcase f))))))
+         (tree-name (file-name-base file))
+         (label (read-string "Label: "))
+         )
+    (forester--create-tree-link tree-name label)
+    )
+  )
+
+(defun forester-ref ()
+  "Create a ref to an existing tree at the current point."
+  (interactive)
+  (let* (
+         (file (read-file-name "Select tree: " (forester--root) nil t nil
+                               (lambda (f) (or (file-directory-p f)
+                                               (string-match-p "\\.tree\\'" (downcase f))))))
+         (tree-name (file-name-base file))
+         )
+    (forester--create-tree-ref tree-name)
+    )
+  )
+
 
 (defvar forester--preview-proc nil
   "Whether './forester' is currently running.")
