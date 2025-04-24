@@ -204,6 +204,26 @@
     )
   )
 
+(defun forester--transclude-string (string)
+  (interactive "sString: ")  
+  (unless (bolp)  
+    (newline))    
+  (insert (format "\\transclude{%s}" string)) 
+  )
+
+(defun forester-transclude ()
+  "Transclude a tree from the root directory"
+  (interactive)
+  (let* (
+         (file (read-file-name "Select tree: " (forester--root) nil t nil
+                               (lambda (f) (or (file-directory-p f)
+                                               (string-match-p "\\.tree\\'" (downcase f))))))
+         (tree-name (file-name-base file))
+         )
+    (forester--transclude-string tree-name)
+    )
+  )
+
 
 (defvar forester--preview-proc nil
   "Whether './forester' is currently running.")
@@ -290,7 +310,9 @@ With a prefix argument, instead terminate the preview process.
                                              (concat "^" address ".tree"))))
     (if files
         (find-file (car files))
-      (error "Could not find tree"))))
+      (message "Could not find tree at point")
+      (project-find-file)
+      )))
 
 (defun forester-jump-in-namespace (&optional namespace)
   (interactive)
