@@ -314,6 +314,21 @@ With a prefix argument, instead terminate the preview process.
       (project-find-file)
       )))
 
+(defun forester-find-parents ()
+  "Use rgrep to find trees which transclude the current tree"
+  (interactive)
+  (let ((current-file (buffer-file-name)))
+    (if current-file
+        (let
+            ((search-term 
+              (format "\\transclude{%s}" (file-name-base current-file)))
+             (file-pattern "*.tree")
+             )
+          (rgrep search-term file-pattern (forester--root))
+          )
+      (message "buffer file name is 'nil'")
+      )))
+
 (defun forester-jump-in-namespace (&optional namespace)
   (interactive)
   (let* ((whoami (forester--whoami))
