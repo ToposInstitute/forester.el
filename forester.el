@@ -321,7 +321,7 @@ With a prefix argument, instead terminate the preview process.
     (if current-file
         (let
             ((search-term 
-              (format "\\transclude{%s}" (file-name-base current-file)))
+              (format "\\\\transclude{%s}" (file-name-base current-file)))
              (file-pattern "*.tree")
              )
           (rgrep search-term file-pattern (forester--root))
