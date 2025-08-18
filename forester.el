@@ -144,7 +144,7 @@
       (apply #'call-process `(,path nil t nil ,@args))
       (buffer-string))))
 
-(defun forester--new (&optional template namespace dest author)
+(defun forester--new (&optional template namespace dest author no-title)
   (let* ((whoami (forester--whoami))
          (namespace (if (and whoami (not namespace))
                         (alist-get 'namespace whoami)))
@@ -162,7 +162,7 @@
          (content (with-temp-buffer
                     (insert-file-contents treepath)
                     (goto-char (point-min))
-                    (insert "\\title{}\n")
+                    (if (not no-title) (insert "\\title{}\n"))
                     (insert (concat "\\author{" author "}\n"))
                     (buffer-string)))
          )
@@ -275,10 +275,10 @@ With a prefix argument, instead terminate the preview process.
 (defun forester--select-template ()
   (completing-read "Select template: " (forester--template-options)))
 
-(defun forester-new (&optional template namespace dest author)
+(defun forester-new (&optional template namespace dest author no-title)
   (interactive)
   (let ((template (unless template (forester--select-template))))
-    (message (forester--new template namespace dest author))))
+    (message (forester--new template namespace dest author no-title))))
 
 (defun forester-new-and-goto (&optional template namespace dest author)
   (interactive)
@@ -301,6 +301,16 @@ With a prefix argument, instead terminate the preview process.
     (save-buffer)
     (find-file (concat (forester--root) treepath))
     (goto-char 8)))
+
+(defun forester-export-to-subtree (&optional template namespace dest author)
+  (interactive)
+  (let* ((treepath (forester-new template namespace dest author 't))
+         (tree (file-name-base treepath)))
+    (kill-region (region-beginning) (region-end))
+    (insert (concat "\\transclude{" tree "}"))
+    (find-file (concat (forester--root) treepath))
+    (goto-char (point-max))
+    (yank)))
 
 (defun forester-goto ()
   "Jump to the tree address at point"
@@ -338,6 +348,23 @@ With a prefix argument, instead terminate the preview process.
          (files (map 'list (lambda (file) (substring file (length root))) files))
          (file (completing-read "Select tree:" files)))
     (find-file (concat root file))))
+
+(defun forester-open ()
+  (interactive)
+  (let* ((fn (file-name-nondirectory (buffer-file-name)))
+         (id (file-name-sans-extension fn))
+         (ext (file-name-extension fn))
+         (url (concat "http://localhost:8080/" id)))
+    (if (string-equal ext "tree")
+        (with-temp-buffer (call-process "xdg-open" nil t nil url)))))
+
+(defun forester-today ()
+  (interactive)
+  (let* ((project-root (projectile-project-root))
+         (date-string (format-time-string "%Y-%m-%d"))
+         (file (expand-file-name (format "trees/day-notes/%s-note.tree" date-string)
+                                 project-root)))
+    (find-file file)))
 
 (define-derived-mode forester-mode text-mode "Forester" "A major mode for editing forester files (trees)"
   (visual-line-mode)
