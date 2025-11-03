@@ -316,12 +316,21 @@ With a prefix argument, instead terminate the preview process.
   "Jump to the tree address at point"
   (interactive)
   (let* ((address (current-word))
-         (files (directory-files-recursively (forester--root)
-                                             (concat "^" address ".tree"))))
-    (if files
-        (find-file (car files))
+         (file (forester--find-tree-file address)))
+    (if file
+        (find-file file)
       (message "Could not find tree at point")
       (project-find-file)
+      )))
+
+(defun forester--find-tree-file (tree)
+  "find the (first) project file matching the name TREE"
+  (interactive)
+  (let* (
+         (files (directory-files-recursively (forester--root)
+                                             (concat "^" tree ".tree"))))
+    (if files
+        (car files)
       )))
 
 (defun forester-find-parents ()
