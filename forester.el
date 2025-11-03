@@ -24,7 +24,7 @@
   nil ; No initial customization
   "Customization options for the Forester markup language"
   :group 'faces
-)
+  )
 
 (defface forester-title
   '((t :inherit 'bold))
@@ -103,16 +103,16 @@
 
   ;; This handles font locking
   (setq-local treesit-font-lock-settings
-               (apply #'treesit-font-lock-rules
-                      forester-ts-font-lock-rules))
+              (apply #'treesit-font-lock-rules
+                     forester-ts-font-lock-rules))
 
   (setq-local treesit-font-lock-feature-list
-	      '((inline-math title keyword builtin rich-text comments) () ()))
+	            '((inline-math title keyword builtin rich-text comments) () ()))
 
   ;; This handles indentation
   (setq-local treesit-simple-indent-rules forester-ts-indent-rules)
 
-   ;; ... everything else we talk about go here also ...
+  ;; ... everything else we talk about go here also ...
 
   ;; End with this
   (treesit-major-mode-setup))
@@ -153,10 +153,10 @@
          (dest (if (and whoami (not dest))
                    (alist-get 'dest whoami)))
          (output (apply #'forester--call
-           `("new"
-             ,(concat "--dest=" dest)
-             ,(concat "--prefix=" namespace)
-             ,@(if template (list (concat "--template=" template)) '()))))
+                        `("new"
+                          ,(concat "--dest=" dest)
+                          ,(concat "--prefix=" namespace)
+                          ,@(if template (list (concat "--template=" template)) '()))))
          (tree (car (last (split-string output "\n" t))))
          (treepath (concat (forester--root) tree))
          (content (with-temp-buffer
@@ -284,7 +284,7 @@ With a prefix argument, instead terminate the preview process.
   (interactive)
   (let* ((tree (forester-new template namespace dest author)))
     (find-file (concat (forester--root) tree))
-    ; \title{<cursor>}
+                                        ; \title{<cursor>}
     (goto-char 8)))
 
 (defun forester-new-and-transclude (&optional template namespace dest author)
