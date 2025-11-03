@@ -348,6 +348,55 @@ With a prefix argument, instead terminate the preview process.
       (message "buffer file name is 'nil'")
       )))
 
+(defun forester--append-transcluded (upstream str)
+  "Append a list of all trees downstream of the current"
+  (let (
+        (local-transcludes '())
+        (downstreams '())
+        (pos 0))
+    (while (string-match "\\\\transclude{\\(.*?\\)}" str pos)
+      (let ((tree (substring-no-properties (match-string 1 str))))
+        (if (member tree upstream)
+            (error "circular reference in transclusions at %s\nPath: %S)" tree transcludes)
+          (push tree local-transcludes)
+          (setq pos (match-end 0)))
+        ))
+    (dolist (tree local-transcludes)
+      (if-let* ((tree-file (forester--find-tree-file tree))
+                (str (with-temp-buffer 
+                       (insert-file-contents tree-file)
+                       (buffer-string)
+                       ))
+                )
+          (push (forester--append-transcluded (cons tree upstream) str) downstreams)
+        (error "Could not find the tree %s" tree)
+        )
+      )
+    (apply 'append local-transcludes downstreams)
+    )
+  )
+
+(defun forester--get-transcluded ()
+  "Return a list of all trees downstream of the current"
+  (forester--append-transcluded '() (buffer-string))
+  )
+
+(defun forester-dired-display-downstream ()
+  "Create a dired buffer with files downstream of this tree.
+
+These files include the current one (an error is raised if the current
+buffer is not visiting a file).
+"
+  (interactive)
+  (if-let (
+         (this-file (buffer-file-name))
+         (downstream-files (mapcar 'forester--find-tree-file (forester--get-transcluded)))
+         )
+      (dired (cons (forester--root) (cons this-file downstream-files)))
+    (error "The current buffer is not visiting a file")
+    )
+  )
+
 (defun forester-jump-in-namespace (&optional namespace)
   (interactive)
   (let* ((whoami (forester--whoami))
