@@ -315,13 +315,12 @@ With a prefix argument, instead terminate the preview process.
 (defun forester-goto ()
   "Jump to the tree address at point"
   (interactive)
-  (let* ((address (current-word))
-         (file (forester--find-tree-file address)))
-    (if file
-        (find-file file)
-      (message "Could not find tree at point")
-      (project-find-file)
-      )))
+  (if-let* ((address (current-word))
+            (file (forester--find-tree-file address)))
+      (find-file file)
+    (message "Could not find tree at point")
+    (project-find-file)
+    ))
 
 (defun forester--find-tree-file (tree)
   "find the (first) project file matching the name TREE"
@@ -357,7 +356,7 @@ With a prefix argument, instead terminate the preview process.
     (while (string-match "\\\\transclude{\\(.*?\\)}" str pos)
       (let ((tree (substring-no-properties (match-string 1 str))))
         (if (member tree upstream)
-            (error "circular reference in transclusions at %s\nPath: %S)" tree transcludes)
+            (error "circular reference in transclusions at %s\nPath: %S)" tree upstream)
           (push tree local-transcludes)
           (setq pos (match-end 0)))
         ))
