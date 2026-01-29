@@ -191,11 +191,15 @@
     )
   )
 
-(defun forester-ref ()
-  "Create a ref to an existing tree at the current point."
-  (interactive)
+(defun forester-ref (&optional prefix)
+  "Create a ref to an existing tree at the current point.
+  
+  With a prefix argument, search in (forester--root)/trees/bib/."
+  (interactive "P")
   (let* (
-         (file (read-file-name "Select tree: " (forester--root) nil t nil
+         (root (forester--root))
+         (search-dir (if prefix (concat root "trees/bib/") root))
+         (file (read-file-name "Select tree: " search-dir nil t nil
                                (lambda (f) (or (file-directory-p f)
                                                (string-match-p "\\.tree\\'" (downcase f))))))
          (tree-name (file-name-base file))
