@@ -246,18 +246,24 @@ recompilation.  Otherwise, start the preview process.
 
 With a prefix argument, instead terminate the preview process.
 "
-  (interactive)
-  (if (and forester--preview-proc (process-live-p forester--preview-proc))
+  (interactive "P")
+  (if prefix
       (progn
-        (message "Sending Enter to the preview process...")
-        (process-send-string forester--preview-proc "\n"))
-    (progn
-      (message "Starting the preview process...")
-      (setq forester--preview-proc
-            (start-process "forester-preview" "*preview*" (forester--get-binary "preview")))
-      (set-process-sentinel forester--preview-proc #'forester--sentinel)
-      (set-process-query-on-exit-flag forester--preview-proc nil)
-      (display-buffer "*preview*"))))
+        (forester-end-preview))
+    (if (and forester--preview-proc (process-live-p forester--preview-proc))
+        (progn
+          (message "Sending Enter to the preview process...")
+          (process-send-string forester--preview-proc "\n"))
+      (progn
+        (message "Starting the preview process...")
+        (setq forester--preview-proc
+              (start-process "forester-preview" "*preview*" (forester--get-binary "preview")))
+        (set-process-sentinel forester--preview-proc #'forester--sentinel)
+        (set-process-query-on-exit-flag forester--preview-proc nil)
+        (display-buffer "*preview*"))))
+  )
+
+
 
 (defun forester-end-preview ()
   "Kill the preview process, if currently running."
