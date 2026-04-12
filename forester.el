@@ -205,11 +205,19 @@
 (defun forester-ref (&optional prefix)
   "Create a ref to an existing tree at the current point.
   
-  With a prefix argument, search in (forester--root)/trees/bib/."
-  (interactive "P")
+  With a single prefix argument, search in 'whoami.dest'.
+  With a double prefix argument, search in 'forester-bib-subdir'."
+  (interactive "p")
   (let* (
          (root (forester--root))
-         (search-dir (if prefix (concat root "trees/bib/") root))
+         (whoami (forester--whoami))
+         (search-dir (pcase prefix 
+                       (1 root)
+                       (4 (if whoami (concat root (alist-get 'dest whoami)) root))
+                       (16 (concat root forester-bib-subdir))
+                       (_ root)
+                       )
+                     )
          (file (read-file-name "Select tree: " search-dir nil t nil
                                (lambda (f) (or (file-directory-p f)
                                                (string-match-p "\\.tree\\'" (downcase f))))))
