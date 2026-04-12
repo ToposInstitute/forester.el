@@ -131,6 +131,17 @@
     (if (file-exists-p whoami)
         (json-read-file whoami))))
 
+(defgroup forester nil
+  "Forester customisation"
+  :group 'applications
+  )
+
+(defcustom forester-bib-subdir "trees/bib/"
+  "The subdirectory of the root in which bib refs are kept."
+  :type 'string
+  :group 'forester
+  )
+
 
 ;;; This is unused
 (defun forester--start (&rest args)
