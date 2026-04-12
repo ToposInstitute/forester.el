@@ -373,9 +373,9 @@ With a prefix argument, instead terminate the preview process.
       (lambda (file) (string-match-p "\\.tree\\'" file))
       (project-files (project-current))))))
 
-(defun forester--parent-trees-elisp (tree-name)
-  "Return a list of .tree files in the project that transclude TREE-NAME."
-  (let ((needle (format "\\transclude{%s}" tree-name))
+(defun forester--grep-trees-elisp (string)
+  "Return a list of .tree files in the project that contain STRING."
+  (let ((needle (format "%s" string))
         matches)
     (dolist (file (forester--tree-files) (nreverse matches))
       (with-temp-buffer
@@ -384,8 +384,8 @@ With a prefix argument, instead terminate the preview process.
         (when (search-forward needle nil t)
           (push file matches))))))
 
-(defun forester--parent-trees-rg (tree-name)
-  "Return a list of .tree files in the project that transclude TREE-NAME, using ripgrep."
+(defun forester--grep-trees-rg (string)
+  "Return a list of .tree files in the project that transclude STRING, using ripgrep."
   (when (executable-find "rg")
     (let ((default-directory (forester--root)))
       (condition-case nil
@@ -393,24 +393,24 @@ With a prefix argument, instead terminate the preview process.
                   (delete-dups
                    (process-lines
                     "rg" "-l" "-F" "-g" "*.tree"
-                    (format "\\transclude{%s}" tree-name)
+                    (format "%s" string)
                     ".")))
         (error '())))))
 
-(defun forester--parent-trees (tree-name)
-  "Return a list of parent .tree files for TREE-NAME."
-  (or (forester--parent-trees-rg tree-name)
-      (forester--parent-trees-elisp tree-name)))
+(defun forester--grep-trees (string)
+  "Return a list of .tree files matching for regexp STRING."
+  (or (forester--grep-trees-rg string)
+      (forester--grep-trees-elisp string)))
 
-(defun forester--read-parent-tree (parents)
-  "Prompt for one file from PARENTS and return it."
+(defun forester--read-match-tree (matches)
+  "Prompt for one file from MATCHES and return it."
   (find-file
    (let ((completion-extra-properties '(:category tree)))
-     (completing-read "Select parent tree: " parents nil t))))
+     (completing-read "Select tree: " matches nil t))))
 
-(defun forester--show-parent-trees-grep (tree-name)
-  "Show parent trees for TREE-NAME in an `rgrep' buffer."
-  (rgrep (format "\\\\transclude{%s}" tree-name)
+(defun forester--show-match-trees-grep (string)
+  "Show parent trees for STRING in an `rgrep' buffer."
+  (rgrep (format "%s" string)
          "*.tree"
          (forester--root)))
 
@@ -428,10 +428,10 @@ THING is used in user messages."
     (`(,file) (find-file file))
     (_
      (pcase on-many
-       ('visit (forester--read-parent-tree matches))
+       ('visit (forester--read-match-tree matches))
        ('grep
         (if thing
-            (forester--show-parent-trees-grep thing)
+            (forester--show-match-trees-grep thing)
           (user-error "Need THING to show grep results")))
        (_ (user-error "Unknown multiple-match handler: %S" on-many))))))
 
@@ -446,12 +446,29 @@ are multiple matches."
   (interactive "P")
   (if-let* ((current-file (buffer-file-name))
             (tree-name (file-name-base current-file))
-            (parents (forester--parent-trees tree-name)))
+            (parents (forester--grep-trees (format "\\transclude{%s}" tree-name))))
       (forester--handle-matches
        parents
        (if use-grep 'grep 'visit)
        tree-name)
     (message "Current file has no parents")))
+
+(defun forester-find-title (&optional use-grep)
+  "Find trees with titles containing TITLE-STRING.
+
+If there is exactly one match, visit it.
+If there are multiple matches, prompt to choose one.
+
+With prefix argument USE-GREP, show an `rgrep' buffer instead when there
+are multiple matches."
+  (interactive "P")
+  (if-let* ((title-string (read-string "title string (can be a prefix): "))
+            (matches (forester--grep-trees (format "\\title{%s" title-string))))
+      (forester--handle-matches
+       matches
+       (if use-grep 'grep 'visit)
+       title-string)
+    (message "No matches")))
 
 (defun forester--append-transcluded (upstream str)
   "Append a list of all trees downstream of the current"
