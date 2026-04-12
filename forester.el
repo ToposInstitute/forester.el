@@ -118,7 +118,9 @@
   (treesit-major-mode-setup))
 
 (defun forester--root ()
-  (project-root (project-current)))
+  (if-let ((project (project-current)))
+      (project-root project)
+    (error "Not in a project")))
 
 (defun forester--get-binary (binary)
   (let* ((local-forester (concat (forester--root) binary)))
@@ -282,8 +284,6 @@ With a prefix argument, instead terminate the preview process.
         (display-buffer "*preview*"))))
   )
 
-
-
 (defun forester-end-preview ()
   "Kill the preview process, if currently running."
   (interactive)
@@ -348,7 +348,7 @@ With a prefix argument, instead terminate the preview process.
             (file (forester--find-tree-file address)))
       (find-file file)
     (message "Could not find tree at point")
-    (project-find-file)
+    (let ((completion-extra-properties '(:category tree))) (project-find-file))
     ))
 
 (defun forester--find-tree-file (tree)
@@ -361,20 +361,97 @@ With a prefix argument, instead terminate the preview process.
         (car files)
       )))
 
-(defun forester-find-parents ()
-  "Use rgrep to find trees which transclude the current tree"
-  (interactive)
-  (let ((current-file (buffer-file-name)))
-    (if current-file
-        (let
-            ((search-term 
-              (format "\\\\transclude{%s}" (file-name-base current-file)))
-             (file-pattern "*.tree")
-             )
-          (rgrep search-term file-pattern (forester--root))
-          )
-      (message "buffer file name is 'nil'")
-      )))
+(defun forester--tree-files ()
+  "Return absolute paths of .tree files in the current project."
+  (let ((root (forester--root)))
+    (mapcar
+     (lambda (file)
+       (if (file-name-absolute-p file)
+           file
+         (expand-file-name file root)))
+     (seq-filter
+      (lambda (file) (string-match-p "\\.tree\\'" file))
+      (project-files (project-current))))))
+
+(defun forester--parent-trees-elisp (tree-name)
+  "Return a list of .tree files in the project that transclude TREE-NAME."
+  (let ((needle (format "\\transclude{%s}" tree-name))
+        matches)
+    (dolist (file (forester--tree-files) (nreverse matches))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        (when (search-forward needle nil t)
+          (push file matches))))))
+
+(defun forester--parent-trees-rg (tree-name)
+  "Return a list of .tree files in the project that transclude TREE-NAME, using ripgrep."
+  (when (executable-find "rg")
+    (let ((default-directory (forester--root)))
+      (condition-case nil
+          (mapcar #'expand-file-name
+                  (delete-dups
+                   (process-lines
+                    "rg" "-l" "-F" "-g" "*.tree"
+                    (format "\\transclude{%s}" tree-name)
+                    ".")))
+        (error '())))))
+
+(defun forester--parent-trees (tree-name)
+  "Return a list of parent .tree files for TREE-NAME."
+  (or (forester--parent-trees-rg tree-name)
+      (forester--parent-trees-elisp tree-name)))
+
+(defun forester--read-parent-tree (parents)
+  "Prompt for one file from PARENTS and return it."
+  (find-file
+   (let ((completion-extra-properties '(:category tree)))
+     (completing-read "Select parent tree: " parents nil t))))
+
+(defun forester--show-parent-trees-grep (tree-name)
+  "Show parent trees for TREE-NAME in an `rgrep' buffer."
+  (rgrep (format "\\\\transclude{%s}" tree-name)
+         "*.tree"
+         (forester--root)))
+
+(defun forester--handle-matches (matches on-many &optional thing)
+  "Handle MATCHES as 0, 1, or many results.
+
+ON-MANY determines how to handle multiple matches:
+- `visit' means prompt with completion and visit the selection
+- `grep' means show an `rgrep' buffer
+
+THING is used in user messages."
+  (pcase matches
+    (`() (message "No matches found%s"
+                  (if thing (format " for %s" thing) "")))
+    (`(,file) (find-file file))
+    (_
+     (pcase on-many
+       ('visit (forester--read-parent-tree matches))
+       ('grep
+        (if thing
+            (forester--show-parent-trees-grep thing)
+          (user-error "Need THING to show grep results")))
+       (_ (user-error "Unknown multiple-match handler: %S" on-many))))))
+
+(defun forester-find-parents (&optional use-grep)
+  "Find trees which transclude the current tree.
+
+If there is exactly one parent, visit it.
+If there are multiple parents, prompt to choose one.
+
+With prefix argument USE-GREP, show an `rgrep' buffer instead when there
+are multiple matches."
+  (interactive "P")
+  (if-let* ((current-file (buffer-file-name))
+            (tree-name (file-name-base current-file))
+            (parents (forester--parent-trees tree-name)))
+      (forester--handle-matches
+       parents
+       (if use-grep 'grep 'visit)
+       tree-name)
+    (message "Current file has no parents")))
 
 (defun forester--append-transcluded (upstream str)
   "Append a list of all trees downstream of the current"
